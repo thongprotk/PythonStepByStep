@@ -1,0 +1,37 @@
+# --- Core data & utils ---
+numpy
+pandas
+python-dotenv
+pydantic
+pydantic-settings
+
+# --- Web / API ---
+fastapi
+uvicorn[standard]
+httpx
+
+# --- Database ---
+sqlalchemy
+psycopg2-binary
+
+# --- Machine Learning ---
+scikit-learn
+torch
+torchvision
+
+# --- Computer Vision ---
+opencv-python
+pillow
+
+# --- LLM / AI Application ---
+anthropic
+langchain
+langchain-anthropic
+
+# --- Testing ---
+pytest
+pytest-cov
+
+# --- Code quality ---
+black
+ruff
