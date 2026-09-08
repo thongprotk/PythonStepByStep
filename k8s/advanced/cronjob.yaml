@@ -1,0 +1,19 @@
+# CronJob — chạy 1 tác vụ định kỳ, ví dụ "health-check ping" mỗi phút để thực hành
+# vòng đời Job/Pod độc lập với Deployment (chạy xong thì kết thúc, không tự restart mãi).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: py-app-health-ping
+spec:
+  schedule: "* * * * *" # mỗi phút — đổi thành "*/5 * * * *" cho 5 phút khi hết tò mò
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: curl-health
+              image: curlimages/curl:8.10.1
+              args:
+                - "-fsS"
+                - "http://py-app:8888/health"
+          restartPolicy: OnFailure

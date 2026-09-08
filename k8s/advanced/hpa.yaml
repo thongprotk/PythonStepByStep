@@ -1,0 +1,21 @@
+# HorizontalPodAutoscaler — tự động tăng/giảm số replicas của Deployment "py-app"
+# dựa trên % CPU sử dụng thực tế so với "requests.cpu" khai báo trong deployment.yaml.
+# Yêu cầu: cluster phải có metrics-server (xem hướng dẫn cài trong docs.md).
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: py-app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: py-app
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

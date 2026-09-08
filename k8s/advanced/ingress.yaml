@@ -1,0 +1,21 @@
+# Ingress — expose Service "py-app" ra ngoài qua HTTP host/path thay vì port-forward thủ công.
+# Yêu cầu: cluster phải có Ingress Controller (vd: ingress-nginx) đã cài, xem docs.md.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: py-app-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: py-app.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: py-app
+                port:
+                  number: 8888

@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: py-app
+  labels:
+    app: py-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: py-app
+  template:
+    metadata:
+      labels:
+        app: py-app
+    spec:
+      containers:
+        - name: py-app
+          image: py-app:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8888
+          envFrom:
+            - configMapRef:
+                name: py-app-config
+            - secretRef:
+                name: py-app-secret
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8888
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8888
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

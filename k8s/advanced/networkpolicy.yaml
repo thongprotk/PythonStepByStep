@@ -1,0 +1,22 @@
+# NetworkPolicy — mặc định K8s cho phép MỌI pod gọi MỌI pod khác trong cluster.
+# Policy này giới hạn: chỉ pod nào có label app=py-app mới được gọi vào postgres:5432.
+# Yêu cầu: CNI plugin phải hỗ trợ NetworkPolicy (Calico có; kind cần cài Calico thay vì
+# CNI mặc định "kindnet" mới policy này có tác dụng — xem ghi chú trong docs.md).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-py-app-to-postgres
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: py-app
+      ports:
+        - protocol: TCP
+          port: 5432

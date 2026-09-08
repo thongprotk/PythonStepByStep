@@ -1,0 +1,6 @@
+# Namespace cô lập tài nguyên theo môi trường/nhóm — thay vì thả hết vào "default".
+# Thực hành: kubectl apply -f namespace.yaml, sau đó apply các manifest khác với `-n py-practice`.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: py-practice
