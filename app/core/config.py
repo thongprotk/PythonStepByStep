@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     debug: bool = False
     anthropic_api_key: str = ""
     database_url: str = "sqlite:///./app.db"
+    chat_model: str = "claude-3-5-sonnet-latest"
+    llm_timeout: float = 30.0
+    model_path: str = "./model.joblib"
 
 
 @lru_cache

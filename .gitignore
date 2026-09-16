@@ -20,6 +20,9 @@ __pycache__/
 *.db
 *.sqlite3
 
+# Trained model artifacts (persisted by /predict/train, seeded on startup)
+*.joblib
+
 # Distribution / packaging
 build/
 dist/

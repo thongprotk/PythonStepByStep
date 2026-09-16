@@ -9,6 +9,7 @@ pydantic-settings
 fastapi
 uvicorn[standard]
 httpx
+python-multipart
 
 # --- Database ---
 sqlalchemy
