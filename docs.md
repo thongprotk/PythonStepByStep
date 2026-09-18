@@ -105,11 +105,12 @@ PY/
 ├── Dockerfile
 ├── requirements.txt
 ├── app/
-│   ├── main.py          # tạo FastAPI app, include các router
-│   ├── core/config.py   # đọc biến môi trường (APP_NAME, DEBUG, DATABASE_URL, ANTHROPIC_API_KEY)
-│   ├── api/routes/      # health.py, predict.py, chat.py
-│   ├── ml/model.py      # LinearRegression (sklearn) — nhẹ, không load lúc import
-│   └── llm/client.py    # gọi Anthropic API
+│   ├── main.py          # tạo FastAPI app, include các router, lifespan seed demo model
+│   ├── core/config.py   # đọc biến môi trường (APP_NAME, DEBUG, DATABASE_URL, ANTHROPIC_API_KEY, CHAT_MODEL, LLM_TIMEOUT, MODEL_PATH)
+│   ├── api/routes/      # health.py, predict.py (+/train), chat.py, cv.py
+│   ├── ml/model.py      # LinearRegression (sklearn) + save/load joblib
+│   ├── cv/processor.py  # to_grayscale + encode_png (OpenCV)
+│   └── llm/client.py    # gọi Anthropic API (mặc định claude-3-5-sonnet-latest)
 ├── tests/
 └── k8s/
     ├── configmap.yaml
@@ -123,7 +124,7 @@ PY/
 `pip install`, và cú pháp `gunicorn` sai flag — nay dùng thẳng `uvicorn` vì K8s scale bằng
 **replicas** (nhiều pod), không cần multi-worker-process trong 1 container):
 ```dockerfile
-FROM python:3.9-slim
+FROM python:3.12-slim
 WORKDIR /app
 
 COPY requirements.txt .
@@ -136,7 +137,9 @@ EXPOSE 8888
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8888"]
 ```
 Giải thích từng dòng:
-- `FROM python:3.9-slim` — base image nhỏ gọn, đủ Python runtime.
+- `FROM python:3.12-slim` — base image nhỏ gọn. Phải ≥3.10 vì code dùng syntax `X | None`
+  (`app/ml/model.py`, `app/schemas/common.py`); bản 3.9 cũ crash ngay lúc import.
+  Dùng `opencv-python-headless` (thay vì `opencv-python`) vì image slim thiếu `libGL` hệ thống.
 - `WORKDIR /app` — mọi lệnh `COPY`/`RUN` sau đó chạy tương đối trong `/app` bên trong container.
 - `COPY requirements.txt .` rồi mới `RUN pip install` (tách riêng bước này) — tận dụng **Docker layer
   cache**: nếu code app đổi nhưng `requirements.txt` không đổi, Docker sẽ tái sử dụng layer đã cài
@@ -321,10 +324,10 @@ kubectl exec -it deploy/py-app -- /bin/bash
 kubectl port-forward svc/py-app 8888:8888
 # Mở terminal khác:
 curl localhost:8888/health
-curl -X POST localhost:8888/predict -H "Content-Type: application/json" -d '{"features":[1,2,3]}'
+curl -X POST localhost:8888/predict -H "Content-Type: application/json" -d '{"features":[1,2]}'
 ```
-Lưu ý endpoint `/predict` sẽ trả lỗi 400 vì model chưa `train()` — đúng như code, không phải lỗi
-K8s; đây là điểm có thể cải tiến (mục 8).
+Lưu ý app seed sẵn demo model lúc startup (`y = 2x0 + 3x1 + 1`) nên `/predict` với đúng 2
+features chạy được ngay; muốn train model riêng thì gọi `POST /predict/train` (xem `AGENTS.md`).
 
 ---
 
@@ -448,13 +451,12 @@ Những điểm sau **chưa** cần làm ngay, nhưng là hướng cải tiến 
    thật. Cần cài `metrics-server` trước (xem mục 9.2).
 3. **Ingress thay vì port-forward** — port-forward chỉ dùng để debug tạm; Ingress mới là cách expose
    service ra ngoài đúng chuẩn production-like.
-4. **Multi-stage Dockerfile** — image hiện cài cả `torch`, `torchvision`, `opencv-python` (rất nặng,
-   >2GB) dù `app/main.py` chỉ dùng `sklearn` cho `/predict`. Có thể tách requirements theo nhu cầu
-   thật, hoặc dùng multi-stage build để loại bỏ build-tools khỏi image cuối, giảm thời gian
-   `kind load` đáng kể.
-5. **Health check phân biệt readiness thật** — `/health` hiện luôn trả `200 ok`, không kiểm tra kết
-   nối DB thật. Khi có Postgres thật (mục 1), nên cập nhật `/health` để check `SELECT 1`, để
-   readinessProbe phản ánh đúng "pod sẵn sàng nhận traffic" (nếu DB down, pod nên fail readiness).
+4. **(Đã làm một phần)** Image đã gỡ `torch`/`torchvision`/`langchain*` (không gì import)
+   và dùng `opencv-python-headless` thay vì `opencv-python` (slim thiếu `libGL`). Nếu muốn nhẹ hơn
+   nữa: tách requirements hoặc multi-stage build để loại build-tools khỏi image cuối.
+5. **(Đã làm)** `/health` giờ trả thêm field `db` (check `SELECT 1` thật) — readinessProbe đã phản
+   ánh đúng trạng thái DB. Khi DB down, `db` sẽ là `"error: ..."` (status vẫn 200 để dễ debug;
+   nếu muốn pod bị rút traffic thì đổi sang 503 khi `db` lỗi).
 6. **Secret quản lý bằng công cụ chuyên dụng** — `secret.yaml` hiện chỉ minh hoạ; thực tế nên dùng
    **Sealed Secrets** hoặc **External Secrets Operator** (đọc từ Vault/AWS Secrets Manager) để không
    bao giờ có secret plaintext trong git.

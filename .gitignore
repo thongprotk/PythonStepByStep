@@ -20,6 +20,9 @@ __pycache__/
 *.db
 *.sqlite3
 
+# Local error log (app/core/error_log.py) — generated, not meant to be committed
+logs/
+
 # Trained model artifacts (persisted by /predict/train, seeded on startup)
 *.joblib
 

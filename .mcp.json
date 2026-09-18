@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "py-mida-tools": {
+      "command": ".venv/bin/python",
+      "args": ["-m", "app.mcp_server"],
+      "env": {}
+    }
+  }
+}

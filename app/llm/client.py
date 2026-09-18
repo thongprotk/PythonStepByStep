@@ -26,3 +26,16 @@ class LLMClient:
             messages=[{"role": "user", "content": message}],
         )
         return response.content[0].text
+
+    def ask_with_system(
+        self, system: str, message: str, model: str | None = None
+    ) -> str:
+        if not message or not message.strip():
+            raise ValueError("message must be a non-empty string")
+        response = self._client.messages.create(
+            model=model or self._default_model,
+            max_tokens=1024,
+            system=system,
+            messages=[{"role": "user", "content": message}],
+        )
+        return response.content[0].text

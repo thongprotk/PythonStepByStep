@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import Response
 
 from app.cv.processor import encode_png, to_grayscale
@@ -9,7 +9,11 @@ MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 
 @router.post("/grayscale")
-def grayscale(image: UploadFile) -> Response:
+def grayscale(
+    image: UploadFile = File(...),  # noqa: B008 — standard FastAPI idiom
+) -> Response:
+    if not image.filename:
+        raise HTTPException(status_code=422, detail="No file uploaded")
     data = image.file.read()
     if not data:
         raise HTTPException(status_code=422, detail="Uploaded file is empty")

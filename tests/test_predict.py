@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.api.routes import predict
+from app.core.config import get_settings
 from app.main import app
 from app.ml.model import RegressionModel
 
@@ -53,3 +54,30 @@ def test_predict_wrong_dimension_returns_422(monkeypatch, tmp_path):
     )
     response = client.post("/predict", json={"features": [1.0, 2.0]})
     assert response.status_code == 422
+
+
+def test_lifespan_seeds_demo_model(monkeypatch, tmp_path):
+    """Startup without a persisted file seeds y = 2x0 + 3x1 + 1."""
+    get_settings.cache_clear()
+    monkeypatch.setenv("MODEL_PATH", str(tmp_path / "missing.joblib"))
+    try:
+        with TestClient(app) as lifespan_client:
+            response = lifespan_client.post("/predict", json={"features": [1.0, 2.0]})
+            assert response.status_code == 200
+            assert abs(response.json()["prediction"] - 9.0) < 1e-6
+    finally:
+        get_settings.cache_clear()
+
+
+def test_lifespan_survives_corrupt_model_file(monkeypatch, tmp_path):
+    """A corrupt model.joblib (e.g. pod killed mid-write) falls back to seeding."""
+    corrupt = tmp_path / "model.joblib"
+    corrupt.write_bytes(b"not a valid joblib payload")
+    get_settings.cache_clear()
+    monkeypatch.setenv("MODEL_PATH", str(corrupt))
+    try:
+        with TestClient(app) as lifespan_client:
+            response = lifespan_client.post("/predict", json={"features": [1.0, 2.0]})
+            assert response.status_code == 200
+    finally:
+        get_settings.cache_clear()

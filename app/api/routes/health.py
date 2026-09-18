@@ -13,8 +13,11 @@ def check_db(database_url: str) -> str:
         return "skipped: sqlalchemy not installed"
     try:
         engine = create_engine(database_url, connect_args={"timeout": 5})
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+        finally:
+            engine.dispose()
         return "ok"
     except Exception as exc:  # noqa: BLE001 — any DB failure is reported as a string
         return f"error: {exc}"

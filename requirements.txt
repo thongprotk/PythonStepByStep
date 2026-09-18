@@ -17,17 +17,19 @@ psycopg2-binary
 
 # --- Machine Learning ---
 scikit-learn
-torch
-torchvision
 
 # --- Computer Vision ---
-opencv-python
+opencv-python-headless
 pillow
 
 # --- LLM / AI Application ---
 anthropic
-langchain
-langchain-anthropic
+beautifulsoup4
+markdownify
+mcp
+
+# --- Database / BaaS ---
+supabase
 
 # --- Testing ---
 pytest
